@@ -237,96 +237,81 @@ arrival_season = st.sidebar.selectbox(
     ]
 )
 
+# CRITICAL FIX: Data types explicitly assigned to match Pipeline requirements
 input_df = pd.DataFrame({
-
-    "hotel":[hotel],
-    "lead_time":[lead_time],
-    "arrival_date_year":[arrival_date_year],
-    "arrival_date_month":[arrival_date_month],
-    "arrival_date_week_number":[arrival_date_week_number],
-    "arrival_date_day_of_month":[arrival_date_day_of_month],
-    "stays_in_weekend_nights":[stays_in_weekend_nights],
-    "stays_in_week_nights":[stays_in_week_nights],
-    "adults":[adults],
-    "children":[children],
-    "babies":[babies],
-    "meal":[meal],
-    "country":[country],
-    "market_segment":[market_segment],
-    "distribution_channel":[distribution_channel],
-    "is_repeated_guest":[is_repeated_guest],
-    "previous_cancellations":[previous_cancellations],
-    "previous_bookings_not_canceled":[previous_bookings_not_canceled],
-    "reserved_room_type":[reserved_room_type],
-    "deposit_type":[deposit_type],
-    "agent":[agent],
-    "company":[company],
-    "days_in_waiting_list":[days_in_waiting_list],
-    "customer_type":[customer_type],
-    "adr":[adr],
-    "required_car_parking_spaces":[required_car_parking_spaces],
-    "total_of_special_requests":[total_of_special_requests],
-    "total_guests":[total_guests],
-    "total_nights":[total_nights],
-    "is_family":[is_family],
-    "arrival_season":[arrival_season]
-
+    "hotel": [str(hotel)],
+    "lead_time": [int(lead_time)],
+    "arrival_date_year": [int(arrival_date_year)],
+    "arrival_date_month": [str(arrival_date_month)],
+    "arrival_date_week_number": [int(arrival_date_week_number)],
+    "arrival_date_day_of_month": [int(arrival_date_day_of_month)],
+    "stays_in_weekend_nights": [int(stays_in_weekend_nights)],
+    "stays_in_week_nights": [int(stays_in_week_nights)],
+    "adults": [int(adults)],
+    "children": [float(children)], # Model might expect float for missing value imputation
+    "babies": [int(babies)],
+    "meal": [str(meal)],
+    "country": [str(country)],
+    "market_segment": [str(market_segment)],
+    "distribution_channel": [str(distribution_channel)],
+    "is_repeated_guest": [int(is_repeated_guest)],
+    "previous_cancellations": [int(previous_cancellations)],
+    "previous_bookings_not_canceled": [int(previous_bookings_not_canceled)],
+    "reserved_room_type": [str(reserved_room_type)],
+    "deposit_type": [str(deposit_type)],
+    "agent": [float(agent)], # IDs with NaN values usually train as floats
+    "company": [float(company)],
+    "days_in_waiting_list": [int(days_in_waiting_list)],
+    "customer_type": [str(customer_type)],
+    "adr": [float(adr)],
+    "required_car_parking_spaces": [int(required_car_parking_spaces)],
+    "total_of_special_requests": [int(total_of_special_requests)],
+    "total_guests": [int(total_guests)],
+    "total_nights": [int(total_nights)],
+    "is_family": [int(is_family)],
+    "arrival_season": [str(arrival_season)]
 })
 
-predict = st.button("Predict Booking Status",use_container_width=True)
+predict = st.button("Predict Booking Status", use_container_width=True)
 
 if predict:
-
     prediction = pipeline.predict(input_df)[0]
-
     probability = pipeline.predict_proba(input_df)[0]
 
-    cancel_prob = probability[1]*100
-
-    not_cancel_prob = probability[0]*100
+    cancel_prob = probability[1] * 100
+    not_cancel_prob = probability[0] * 100
     st.divider()
 
     col1, col2 = st.columns(2)
 
     with col1:
-
         st.metric(
             "Cancellation Probability",
             f"{cancel_prob:.2f}%"
         )
-
-        st.progress(cancel_prob/100)
+        st.progress(cancel_prob / 100)
 
     with col2:
-
         st.metric(
             "Booking Confirmation Probability",
             f"{not_cancel_prob:.2f}%"
         )
-
-        st.progress(not_cancel_prob/100)
+        st.progress(not_cancel_prob / 100)
 
     st.divider()
 
     if prediction == 1:
-
-        st.error("🔴 Booking is likely to be CANCELLED")
-
+        st.error("❌ Booking is likely to be CANCELLED")
         st.subheader("Recommendation")
-
         st.write("""
 - Contact the customer before arrival.
 - Request advance payment.
 - Send booking reminders.
 - Consider flexible pricing strategies.
         """)
-
     else:
-
-        st.success("🟢 Booking is likely to be CONFIRMED")
-
+        st.success("✅ Booking is likely to be CONFIRMED")
         st.subheader("Recommendation")
-
         st.write("""
 - Booking appears stable.
 - Standard confirmation process is sufficient.
@@ -334,18 +319,15 @@ if predict:
         """)
 
     st.subheader("Booking Summary")
-
-    st.dataframe(input_df,use_container_width=True)
+    st.dataframe(input_df, use_container_width=True)
 
 st.divider()
 
 st.markdown("""
 ### 📊 About This Project
-
 This application predicts whether a hotel booking is likely to be cancelled using a **Random Forest Machine Learning model** trained on historical hotel booking data.
 
 **Project Features**
-
 - Hotel Booking Cancellation Prediction
 - Random Forest Classifier
 - Data Preprocessing Pipeline
