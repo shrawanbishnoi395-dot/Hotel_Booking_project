@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import numpy as np
 
 st.set_page_config(
     page_title="Hotel Booking Cancellation Predictor",
@@ -237,89 +238,100 @@ arrival_season = st.sidebar.selectbox(
     ]
 )
 
-# CRITICAL FIX: Data types explicitly assigned to match Pipeline requirements
+# FIXED: Ensure all data types match exactly what pipeline expects
 input_df = pd.DataFrame({
-    "hotel": [str(hotel)],
+    "hotel": [hotel],  # Keep as string - categorical
     "lead_time": [int(lead_time)],
     "arrival_date_year": [int(arrival_date_year)],
-    "arrival_date_month": [str(arrival_date_month)],
+    "arrival_date_month": [arrival_date_month],  # Keep as string - categorical
     "arrival_date_week_number": [int(arrival_date_week_number)],
     "arrival_date_day_of_month": [int(arrival_date_day_of_month)],
     "stays_in_weekend_nights": [int(stays_in_weekend_nights)],
     "stays_in_week_nights": [int(stays_in_week_nights)],
     "adults": [int(adults)],
-    "children": [float(children)], # Model might expect float for missing value imputation
+    "children": [float(children)],  # Float for median imputation
     "babies": [int(babies)],
-    "meal": [str(meal)],
-    "country": [str(country)],
-    "market_segment": [str(market_segment)],
-    "distribution_channel": [str(distribution_channel)],
+    "meal": [meal],  # Keep as string - categorical
+    "country": [country],  # Keep as string - categorical
+    "market_segment": [market_segment],  # Keep as string - categorical
+    "distribution_channel": [distribution_channel],  # Keep as string - categorical
     "is_repeated_guest": [int(is_repeated_guest)],
     "previous_cancellations": [int(previous_cancellations)],
     "previous_bookings_not_canceled": [int(previous_bookings_not_canceled)],
-    "reserved_room_type": [str(reserved_room_type)],
-    "deposit_type": [str(deposit_type)],
-    "agent": [float(agent)], # IDs with NaN values usually train as floats
-    "company": [float(company)],
+    "reserved_room_type": [reserved_room_type],  # Keep as string - categorical
+    "deposit_type": [deposit_type],  # Keep as string - categorical
+    "agent": [float(agent)],  # Float for median imputation on missing values
+    "company": [float(company)],  # Float for median imputation on missing values
     "days_in_waiting_list": [int(days_in_waiting_list)],
-    "customer_type": [str(customer_type)],
+    "customer_type": [customer_type],  # Keep as string - categorical
     "adr": [float(adr)],
     "required_car_parking_spaces": [int(required_car_parking_spaces)],
     "total_of_special_requests": [int(total_of_special_requests)],
     "total_guests": [int(total_guests)],
     "total_nights": [int(total_nights)],
     "is_family": [int(is_family)],
-    "arrival_season": [str(arrival_season)]
+    "arrival_season": [arrival_season]  # Keep as string - categorical
 })
+
+# Fill NaN values in numeric columns before prediction
+numeric_cols = input_df.select_dtypes(include=[np.number]).columns
+for col in numeric_cols:
+    if input_df[col].isna().any():
+        input_df[col] = input_df[col].fillna(0)
 
 predict = st.button("Predict Booking Status", use_container_width=True)
 
 if predict:
-    prediction = pipeline.predict(input_df)[0]
-    probability = pipeline.predict_proba(input_df)[0]
+    try:
+        prediction = pipeline.predict(input_df)[0]
+        probability = pipeline.predict_proba(input_df)[0]
 
-    cancel_prob = probability[1] * 100
-    not_cancel_prob = probability[0] * 100
-    st.divider()
+        cancel_prob = probability[1] * 100
+        not_cancel_prob = probability[0] * 100
+        st.divider()
 
-    col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2)
 
-    with col1:
-        st.metric(
-            "Cancellation Probability",
-            f"{cancel_prob:.2f}%"
-        )
-        st.progress(cancel_prob / 100)
+        with col1:
+            st.metric(
+                "Cancellation Probability",
+                f"{cancel_prob:.2f}%"
+            )
+            st.progress(cancel_prob / 100)
 
-    with col2:
-        st.metric(
-            "Booking Confirmation Probability",
-            f"{not_cancel_prob:.2f}%"
-        )
-        st.progress(not_cancel_prob / 100)
+        with col2:
+            st.metric(
+                "Booking Confirmation Probability",
+                f"{not_cancel_prob:.2f}%"
+            )
+            st.progress(not_cancel_prob / 100)
 
-    st.divider()
+        st.divider()
 
-    if prediction == 1:
-        st.error("❌ Booking is likely to be CANCELLED")
-        st.subheader("Recommendation")
-        st.write("""
+        if prediction == 1:
+            st.error("❌ Booking is likely to be CANCELLED")
+            st.subheader("Recommendation")
+            st.write("""
 - Contact the customer before arrival.
 - Request advance payment.
 - Send booking reminders.
 - Consider flexible pricing strategies.
-        """)
-    else:
-        st.success("✅ Booking is likely to be CONFIRMED")
-        st.subheader("Recommendation")
-        st.write("""
+            """)
+        else:
+            st.success("✅ Booking is likely to be CONFIRMED")
+            st.subheader("Recommendation")
+            st.write("""
 - Booking appears stable.
 - Standard confirmation process is sufficient.
 - Maintain regular customer communication.
-        """)
+            """)
 
-    st.subheader("Booking Summary")
-    st.dataframe(input_df, use_container_width=True)
+        st.subheader("Booking Summary")
+        st.dataframe(input_df, use_container_width=True)
+        
+    except Exception as e:
+        st.error(f"❌ Prediction Error: {str(e)}")
+        st.info("Please check your input values and try again.")
 
 st.divider()
 
