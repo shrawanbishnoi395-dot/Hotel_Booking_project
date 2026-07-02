@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import joblib
 import numpy as np
+from sklearn.preprocessing import LabelEncoder
 
 st.set_page_config(
     page_title="Hotel Booking Cancellation Predictor",
@@ -13,7 +14,35 @@ st.set_page_config(
 def load_pipeline():
     return joblib.load("hotel_booking_pipeline.pkl")
 
+@st.cache_resource
+def create_encoders():
+    """Create label encoders for categorical variables - MUST match training"""
+    encoders = {}
+    
+    # Define categorical mappings (match exactly with training data)
+    categorical_mappings = {
+        'hotel': ['City Hotel', 'Resort Hotel'],
+        'arrival_date_month': ['January', 'February', 'March', 'April', 'May', 'June',
+                               'July', 'August', 'September', 'October', 'November', 'December'],
+        'meal': ['BB', 'FB', 'HB', 'SC'],
+        'country': ['PRT', 'GBR', 'FRA', 'DEU', 'ITA', 'ESP', 'Unknown'],  # Add more as needed
+        'market_segment': ['Online TA', 'Offline TA/TO', 'Direct', 'Corporate', 'Groups'],
+        'distribution_channel': ['TA/TO', 'Direct', 'Corporate', 'GDS'],
+        'reserved_room_type': list('ABCDEFGH'),
+        'deposit_type': ['No Deposit', 'Non Refund', 'Refundable'],
+        'customer_type': ['Transient', 'Transient-Party', 'Contract', 'Group'],
+        'arrival_season': ['Winter', 'Spring', 'Summer', 'Autumn']
+    }
+    
+    for col, values in categorical_mappings.items():
+        encoder = LabelEncoder()
+        encoder.fit(values)
+        encoders[col] = encoder
+    
+    return encoders
+
 pipeline = load_pipeline()
+encoders = create_encoders()
 
 st.title("🏨 Hotel Booking Cancellation Predictor")
 st.markdown("Predict whether a hotel booking is likely to be cancelled.")
@@ -238,46 +267,40 @@ arrival_season = st.sidebar.selectbox(
     ]
 )
 
-# FIXED: Ensure all data types match exactly what pipeline expects
+# Create DataFrame with ENCODED categorical variables
 input_df = pd.DataFrame({
-    "hotel": [hotel],  # Keep as string - categorical
+    "hotel": [encoders['hotel'].transform([hotel])[0]],
     "lead_time": [int(lead_time)],
     "arrival_date_year": [int(arrival_date_year)],
-    "arrival_date_month": [arrival_date_month],  # Keep as string - categorical
+    "arrival_date_month": [encoders['arrival_date_month'].transform([arrival_date_month])[0]],
     "arrival_date_week_number": [int(arrival_date_week_number)],
     "arrival_date_day_of_month": [int(arrival_date_day_of_month)],
     "stays_in_weekend_nights": [int(stays_in_weekend_nights)],
     "stays_in_week_nights": [int(stays_in_week_nights)],
     "adults": [int(adults)],
-    "children": [float(children)],  # Float for median imputation
+    "children": [float(children)],
     "babies": [int(babies)],
-    "meal": [meal],  # Keep as string - categorical
-    "country": [country],  # Keep as string - categorical
-    "market_segment": [market_segment],  # Keep as string - categorical
-    "distribution_channel": [distribution_channel],  # Keep as string - categorical
+    "meal": [encoders['meal'].transform([meal])[0]],
+    "country": [encoders['country'].transform([country])[0] if country in encoders['country'].classes_ else encoders['country'].transform(['Unknown'])[0]],
+    "market_segment": [encoders['market_segment'].transform([market_segment])[0]],
+    "distribution_channel": [encoders['distribution_channel'].transform([distribution_channel])[0]],
     "is_repeated_guest": [int(is_repeated_guest)],
     "previous_cancellations": [int(previous_cancellations)],
     "previous_bookings_not_canceled": [int(previous_bookings_not_canceled)],
-    "reserved_room_type": [reserved_room_type],  # Keep as string - categorical
-    "deposit_type": [deposit_type],  # Keep as string - categorical
-    "agent": [float(agent)],  # Float for median imputation on missing values
-    "company": [float(company)],  # Float for median imputation on missing values
+    "reserved_room_type": [encoders['reserved_room_type'].transform([reserved_room_type])[0]],
+    "deposit_type": [encoders['deposit_type'].transform([deposit_type])[0]],
+    "agent": [float(agent)],
+    "company": [float(company)],
     "days_in_waiting_list": [int(days_in_waiting_list)],
-    "customer_type": [customer_type],  # Keep as string - categorical
+    "customer_type": [encoders['customer_type'].transform([customer_type])[0]],
     "adr": [float(adr)],
     "required_car_parking_spaces": [int(required_car_parking_spaces)],
     "total_of_special_requests": [int(total_of_special_requests)],
     "total_guests": [int(total_guests)],
     "total_nights": [int(total_nights)],
     "is_family": [int(is_family)],
-    "arrival_season": [arrival_season]  # Keep as string - categorical
+    "arrival_season": [encoders['arrival_season'].transform([arrival_season])[0]]
 })
-
-# Fill NaN values in numeric columns before prediction
-numeric_cols = input_df.select_dtypes(include=[np.number]).columns
-for col in numeric_cols:
-    if input_df[col].isna().any():
-        input_df[col] = input_df[col].fillna(0)
 
 predict = st.button("Predict Booking Status", use_container_width=True)
 
@@ -326,8 +349,12 @@ if predict:
 - Maintain regular customer communication.
             """)
 
-        st.subheader("Booking Summary")
-        st.dataframe(input_df, use_container_width=True)
+        st.subheader("Input Summary")
+        summary_df = pd.DataFrame({
+            "Field": ["Hotel", "Lead Time", "Season", "Total Guests", "ADR"],
+            "Value": [hotel, lead_time, arrival_season, total_guests, f"${adr:.2f}"]
+        })
+        st.dataframe(summary_df, use_container_width=True)
         
     except Exception as e:
         st.error(f"❌ Prediction Error: {str(e)}")
