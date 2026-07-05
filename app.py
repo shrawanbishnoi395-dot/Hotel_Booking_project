@@ -45,7 +45,26 @@ pipeline = load_pipeline()
 encoders = create_encoders()
 
 st.title("🏨 Hotel Booking Cancellation Predictor")
-st.markdown("Predict whether a hotel booking is likely to be cancelled.")
+
+st.markdown(
+    """
+Predict whether a hotel booking is likely to be cancelled using a Machine Learning model.
+"""
+)
+
+st.divider()
+
+c1, c2, c3, c4 = st.columns(4)
+
+c1.metric("🤖 Model", "Random Forest")
+
+c2.metric("🎯 Task", "Classification")
+
+c3.metric("📊 Features", "31")
+
+c4.metric("🏨 Output", "Cancel / Stay")
+
+st.divider()
 
 st.sidebar.header("Booking Details")
 
