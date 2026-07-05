@@ -348,17 +348,19 @@ if predict:
 
         cancel_prob = probability[1] * 100
         not_cancel_prob = probability[0] * 100
-        st.divider()
-# Risk Level
-if cancel_prob >= 70:
-    st.error("🔴 Risk Level: HIGH")
-elif cancel_prob >= 40:
-    st.warning("🟡 Risk Level: MEDIUM")
-else:
-    st.success("🟢 Risk Level: LOW")
 
-st.divider()
-        
+        st.divider()
+
+        # Risk Level
+        if cancel_prob >= 70:
+            st.error("🔴 Risk Level: HIGH")
+        elif cancel_prob >= 40:
+            st.warning("🟡 Risk Level: MEDIUM")
+        else:
+            st.success("🟢 Risk Level: LOW")
+
+        st.divider()
+
         col1, col2 = st.columns(2)
 
         with col1:
@@ -376,6 +378,9 @@ st.divider()
             st.progress(not_cancel_prob / 100)
 
         st.divider()
+
+    except Exception as e:
+        st.error(f"Prediction Error: {e}")
 
         if prediction == 1:
             st.error("❌ Booking is likely to be CANCELLED")
