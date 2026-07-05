@@ -66,7 +66,25 @@ c4.metric("🏨 Output", "Cancel / Stay")
 
 st.divider()
 
-st.sidebar.header("Booking Details")
+st.sidebar.title("🏨 Booking Details")
+
+st.sidebar.markdown("---")
+
+st.sidebar.markdown("### ℹ️ About")
+
+st.sidebar.info(
+"""
+This application predicts whether a hotel booking is likely to be cancelled using a trained Machine Learning model.
+
+**Model:** Random Forest
+
+**Task:** Binary Classification
+"""
+)
+
+st.sidebar.markdown("---")
+
+st.sidebar.markdown("### 📝 Enter Booking Information")
 
 hotel = st.sidebar.selectbox(
     "Hotel",
