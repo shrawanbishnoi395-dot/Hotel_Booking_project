@@ -2,7 +2,8 @@
 
 An end-to-end Data Analytics & Machine Learning project that analyzes hotel booking behavior, extracts business insights, predicts booking cancellations, and presents results through an interactive Power BI dashboard.
 
----
+---🎥 Watch Demo--
+https://drive.google.com/file/d/16raJrbkBbGryP01RqTv9Mu8A3C2rryQm/view?usp=sharing
 
 ## 📌 Project Overview
 
